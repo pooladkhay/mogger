@@ -7,23 +7,23 @@ import (
 func main() {
 	m := mogger.New("mogger_example", "./logs")
 
-	// Log without subServiceName
-	m.InfoAndToFile("from main without subServiceName")
+	// log without sub-service name
+	m.InfoAndToFile("from main without sub-service name")
 
-	// Log with subServiceName
+	// log with a sub-service name
 	log := m.AddSubService("main_func")
-	log.InfoAndToFile("info log from main func")
-	log.DebugAndToFile("debug log from main func")
+	log.Info("info log from main func")
+	log.Debug("debug log from main func")
+
+	// -AndToFile prints to stderr and saves it to a file.
 	log.WarnAndToFile("warn log from main func")
 
 	anotherFunc(m)
 }
 
 func anotherFunc(m mogger.Mogger) {
-	// Log with subServiceName
 	log := m.AddSubService("another_func")
 	log.DebugAndToFile("debug log from another func")
-
 	// fatal causes program to exit with a non-zero status code.
 	log.FatalAndToFile("fatal log from main func")
 }
