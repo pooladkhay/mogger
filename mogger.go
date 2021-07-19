@@ -8,16 +8,16 @@ import (
 )
 
 type Mogger interface {
+	AddSubService(name string) Mogger
 	LogToFile(logLevel LogLevel, message string)
 	LogToStdErr()
 	LogToFileAndStdOut()
 }
 
 type mogger struct {
-	// Required.
 	ServiceName string
-	// Optional. Default: /var/log
-	OutputPath string
+	SubService  string
+	OutputPath  string
 }
 
 // serviceName is required.
@@ -32,23 +32,37 @@ func NewMogger(serviceName, outputPath string) Mogger {
 	}
 }
 
-func (m *mogger) LogToFile(logLevel LogLevel, message string) {
-	logMessage := fmt.Sprintf("[%s] - %s", logLevel, message)
-
-	parentFileAddr := fmt.Sprintf("/var/log/%s", m.ServiceName)
-	if m.OutputPath != "" {
-		parentFileAddr = m.OutputPath
+func (m mogger) AddSubService(name string) Mogger {
+	return &mogger{
+		ServiceName: m.ServiceName,
+		SubService:  name,
+		OutputPath:  m.OutputPath,
 	}
-	subFileAddr := fmt.Sprintf("%s/%s", parentFileAddr, logLevel)
+}
 
-	if _, err := os.Stat(subFileAddr); os.IsNotExist(err) {
-		err := os.MkdirAll(subFileAddr, 0700)
+func (m mogger) LogToFile(logLevel LogLevel, message string) {
+	logMessage := fmt.Sprintf("[%s][%s] - %s", time.Now().Format(time.RFC3339), logLevel, message)
+	parentFileAddr := fmt.Sprintf("/var/log/%s", m.ServiceName)
+
+	if m.SubService != "" {
+		logMessage = fmt.Sprintf("[%s][%s][%s] - %s", m.SubService, time.Now().Format(time.RFC3339), logLevel, message)
+	}
+
+	if m.OutputPath != "" {
+		parentFileAddr = fmt.Sprintf("%s/%s", m.OutputPath, m.ServiceName)
+		if m.SubService != "" {
+			parentFileAddr = fmt.Sprintf("%s/%s/%s", m.OutputPath, m.ServiceName, m.SubService)
+		}
+	}
+
+	if _, err := os.Stat(parentFileAddr); os.IsNotExist(err) {
+		err := os.MkdirAll(parentFileAddr, 0700)
 		if err != nil {
 			log.Fatalln("err creating dirs: ", err)
 		}
 	}
 
-	f, err := os.OpenFile(fmt.Sprintf("%s/%s.log", subFileAddr, time.Now().Format(time.RFC3339)), os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	f, err := os.OpenFile(fmt.Sprintf("%s/%s-%s.log", parentFileAddr, logLevel, time.Now().Format(time.RFC3339)), os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		log.Fatalln("err opening file: ", err)
 	}
@@ -58,5 +72,5 @@ func (m *mogger) LogToFile(logLevel LogLevel, message string) {
 		log.Fatalln("err writing to file: ", err)
 	}
 }
-func (m *mogger) LogToStdErr()        {}
-func (m *mogger) LogToFileAndStdOut() {}
+func (m mogger) LogToStdErr()        {}
+func (m mogger) LogToFileAndStdOut() {}
