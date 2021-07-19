@@ -1,24 +1,29 @@
 package main
 
-import "github.com/pooladkhay/mogger"
+import (
+	"github.com/pooladkhay/mogger"
+)
 
 func main() {
-	m := mogger.NewMogger("mogger_example", "./logs")
+	m := mogger.New("mogger_example", "./logs")
 
 	// Log without subServiceName
-	m.LogToFile(mogger.Debug, "without subServiceName")
+	m.InfoAndToFile("from main without subServiceName")
 
 	// Log with subServiceName
-	log := m.AddSubService("Main_func")
-	log.LogToFile(mogger.Info, "this is an info log")
-	log.LogToFile(mogger.Warn, "this is a warn log")
+	log := m.AddSubService("main_func")
+	log.InfoAndToFile("info log from main func")
+	log.DebugAndToFile("debug log from main func")
+	log.WarnAndToFile("warn log from main func")
 
 	anotherFunc(m)
 }
 
 func anotherFunc(m mogger.Mogger) {
 	// Log with subServiceName
-	log := m.AddSubService("Another_func")
-	log.LogToFile(mogger.Debug, "this is a debug log")
-	log.LogToFile(mogger.Fatal, "this is a fatal log")
+	log := m.AddSubService("another_func")
+	log.DebugAndToFile("debug log from another func")
+
+	// fatal causes program to exit with a non-zero status code.
+	log.FatalAndToFile("fatal log from main func")
 }
